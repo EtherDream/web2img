@@ -1,0 +1,62 @@
+body, input, textarea {
+  font-family: monospace;
+  font-size: 15px;
+}
+
+.intro {
+  max-width: 100%;
+}
+
+textarea {
+  width: 100%;
+}
+
+#txtIgnoredFile.bad {
+  color: red;
+}
+
+
+#divDropZone {
+  border: 1px dashed #aaa;
+  padding: 1em 0;
+  font-size: 2em;
+  text-align: center;
+  color: #aaa;
+  user-select: none;
+  margin-bottom: 0.1em;
+}
+
+#txtConf {
+  height: 15em;
+  tab-size: 4;
+}
+#txtConf.fold {
+  height: 1.2em;
+}
+
+#txtConfWarn, #txtUrlsWarn, #txtCodeWarn {
+  color: red;
+}
+
+#imgPreview {
+  max-width: 400px;
+  min-width: 200px;
+  max-height: 200px;
+  min-height: 100px;
+  image-rendering: pixelated;
+  margin: .5em 0;
+}
+
+#txtUrls {
+  height: 5em;
+}
+
+#txtHtml {
+  height: 1.2em;
+}
+#txtJs {
+  height: 6em;
+}
+#txtJs.fold {
+  height: 1.2em;
+}

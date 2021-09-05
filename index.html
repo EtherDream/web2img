@@ -1,0 +1,83 @@
+<!doctype html>
+<html>
+<head>
+  <title>Web2Img</title>
+  <meta name="viewport" content="width=device-width">
+  <link rel="stylesheet" href="assets/css/main.css">
+  <base target="_blank">
+</head>
+<body>
+  <h1>Web2Img</h1>
+  <div>
+    <p>Web2Img is a tool to bundle your web files into a single image, and extract them via Service Worker at runtime.</p>
+    <p>You can use image hosting sites as free CDNs to save bandwidth costs.</p>
+  </div>
+  <div>
+    <img class="intro" src="assets/img/intro.png">
+  </div>
+
+  <h2>Example</h2>
+  <div>
+    Demo: <a href="https://fanhtml5.github.io">fanhtml5.github.io</a>
+    [<a href="https://github.com/fanhtml5/fanhtml5.github.io">Build</a>]
+    [<a href="https://github.com/fanhtml5/test-site">Dev</a>]
+  </div>
+
+  <h2>Step1</h2>
+  <div id="divDropZone" title="Click | Drag & Drop">Select WebSite Directory</div>
+  <div>
+    Ignore: <input id="txtIgnore" value="^\." placeholder="ignore nothing">
+  </div>
+
+  <h2>Step2</h2>
+  <div>
+    <textarea id="txtConf" class="fold" readOnly placeholder="Edit headers Or Remove files"></textarea>
+    <div id="txtConfWarn"></div>
+  </div>
+  <div id="divPreview" hidden>
+    <img id="imgPreview">
+    <div>
+      <button id="btnPreview">Local Preview</button>
+    </div>
+  </div>
+
+  <h2>Step3</h2>
+  <div>
+    <textarea id="txtUrls" placeholder="Upload Image And Paste URLs"></textarea>
+  </div>
+  <div id="txtUrlsWarn"></div>
+
+  <h2>Save</h2>
+  <div>
+    404.html
+  </div>
+  <div>
+    <textarea id="txtHtml" readonly><script src=/x.js></script></textarea>
+  </div>
+  <div>
+    x.js
+  </div>
+  <div>
+    <textarea id="txtJs" readonly class="fold"></textarea>
+  </div>
+  <div id="txtCodeWarn"></div>
+  <div>
+    Privacy:
+    <select id="optPrivacy" disabled>
+      <option value="0">Preserve All</option>
+      <option value="1">Hide Referrer</option>
+      <option value="2" selected>Hide Referrer & Origin</option>
+    </select>
+    <input id="chkMinify" type="checkbox" checked disabled>
+    <label for="chkMinify">Minify</label>
+  </div>
+
+  <h2>About</h2>
+  <div>
+    GitHub: <a href="https://github.com/EtherDream/web2img">web2img</a>
+  </div>
+
+  <script src="libs/terser/terser.min.js"></script>
+  <script src="assets/js/main.js"></script>
+</body>
+</html>
