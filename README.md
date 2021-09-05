@@ -68,7 +68,7 @@ A: Unfortunately, the page can't be displayed. You can add a fallback in `404.ht
 
 Q: Will new features be added?
 
-A: This project is just an experiment in the past, now there is a new project named [freecdn](https://github.com/EtherDream/freecdn), which is much more powerful. (better docs will be released soon)
+A: This project is just an experiment, there is a new project named [freecdn](https://github.com/EtherDream/freecdn) which is much more powerful. (better docs will be released soon)
 
 
 ## License
