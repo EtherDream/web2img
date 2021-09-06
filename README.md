@@ -4,7 +4,14 @@ Web2Img is a tool to bundle your web files into a single image, and extract them
 
 You can use image hosting sites as free CDNs to save bandwidth costs.
 
-![](assets/img/intro.png)
+![intro.png](assets/img/intro.png)
+
+## Tool
+
+Try It Online: https://etherdream.github.io/web2img/
+
+https://user-images.githubusercontent.com/1072787/132183995-b342c3a8-1408-4819-923e-2d25fde419be.mp4
+
 
 ## Example
 
@@ -13,14 +20,6 @@ Demo: [https://fanhtml5.github.io](https://fanhtml5.github.io)
 Target Files: https://github.com/fanhtml5/fanhtml5.github.io (only 2 files)
 
 Source Files: https://github.com/fanhtml5/test-site
-
-
-## Tool
-
-web: https://etherdream.github.io/web2img/ or https://etherdream.com/web2img/
-
-
-cli: TODO...
 
 ## FAQ
 
