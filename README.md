@@ -59,7 +59,7 @@ A: Just overwrite `x.js`, the client polls this file every 2 minutes.
 
 ----
 
-Q: What if the browser doesn't support Service Wokrer?
+Q: What if the browser doesn't support Service Worker?
 
 A: Unfortunately, the page can't be displayed. You can add a fallback in `404.html`.
 
