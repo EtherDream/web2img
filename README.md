@@ -43,7 +43,7 @@ A: No, CDN must enable CORS, allow empty referrer and "null" origin (or real val
 
 Q: Would it be better to optimize the image before uploading?
 
-A: If the server will re-encode the image, it make no difference.
+A: If the server will re-encode the image, it makes no difference.
 
 ----
 
