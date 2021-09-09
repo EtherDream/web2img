@@ -1,8 +1,12 @@
 function pageEnv() {
   var container = document.documentElement
 
-  function showErr(msg) {
-    container.innerHTML = msg
+  function fallback(html) {
+    var noscript = document.getElementsByTagName('noscript')
+    if (noscript.length > 0) {
+      html = noscript[0].innerHTML
+    }
+    container.innerHTML = html
   }
 
   function reload() {
@@ -16,11 +20,11 @@ function pageEnv() {
   if (jsUrl) {
     var sw = navigator.serviceWorker
     if (!sw) {
-      showErr('Error: Service Worker is not supported')
+      fallback('Service Worker is not supported')
       return
     }
     var swPending = sw.register(jsUrl).catch(function(err) {
-      showErr(err.message)
+      fallback(err.message)
     })
     rootPath = getRootPath(jsUrl)
   } else {
@@ -119,6 +123,7 @@ function pageEnv() {
   function loadNextUrl() {
     var url = URLS.shift()
     if (!url) {
+      fallback('failed to load resources')
       return
     }
     if (PRIVACY === 2) {

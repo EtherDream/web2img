@@ -23,6 +23,25 @@ Source Files: https://github.com/fanhtml5/test-site
 
 ## FAQ
 
+Q: What if JavaScript is disabled?
+
+A: Unfortunately, the page can't be displayed. You can add a fallback in `404.html` such as:
+
+```html
+<noscript>
+  <meta http-equiv=Refresh content="0;url=FALLBACK_URL">
+</noscript>
+<script src=/x.js></script>
+```
+
+----
+
+Q: What if the browser doesn't support Service Worker?
+
+A: Same as above. The program will read the contents of `<noscript>` and render them.
+
+----
+
 Q: Is free CDN safe?
 
 A: Yes, the program will verify the data integrity.
@@ -56,12 +75,6 @@ A: It's an easy way to intercept any path.
 Q: How to update files?
 
 A: Just overwrite `x.js`, the client polls this file every 2 minutes.
-
-----
-
-Q: What if the browser doesn't support Service Worker?
-
-A: Unfortunately, the page can't be displayed. You can add a fallback in `404.html`.
 
 ----
 
