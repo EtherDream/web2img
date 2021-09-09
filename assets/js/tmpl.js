@@ -2,15 +2,11 @@ function pageEnv() {
   var container = document.documentElement
 
   function fallback(html) {
-    var noscript = document.getElementsByTagName('noscript')
-    if (noscript.length > 0) {
-      html = noscript[0].innerHTML
+    var noscripts = document.getElementsByTagName('noscript')
+    if (noscripts.length > 0) {
+      html = noscripts[0].innerHTML
     }
     container.innerHTML = html
-  }
-
-  function reload() {
-    location.reload()
   }
 
   var currentScript = document.currentScript
@@ -31,6 +27,29 @@ function pageEnv() {
     rootPath = currentScript.dataset.root
   }
 
+  function unpackToCache(bytes, cache) {
+    var info = JSON.stringify({
+      hash: HASH,
+      time: Date.now()
+    })
+    var res = new Response(info)
+    var pendings = [
+      cache.put(rootPath + '.cache-info', res),
+      swPending,
+    ]
+    var pathResMap = unpack(bytes)
+
+    for (var path in pathResMap) {
+      res = pathResMap[path]
+      pendings.push(
+        cache.put(rootPath + path, res)
+      )
+    }
+    Promise.all(pendings).then(function() {
+      location.reload()
+    })
+  }
+
   function parseImgBuf(buf) {
     if (!buf) {
       loadNextUrl()
@@ -44,16 +63,9 @@ function pageEnv() {
         return
       }
       var bytes = decode1Px3Bytes(buf)
-
       caches.delete('.web2img').then(function() {
         caches.open('.web2img').then(function(cache) {
-          unpack(bytes, cache).then(function() {
-            if (swPending) {
-              swPending.then(reload)
-            } else {
-              reload()
-            }
-          })
+          unpackToCache(bytes, cache)
         })
       })
     })
@@ -97,13 +109,13 @@ function pageEnv() {
   }
 
   if (PRIVACY === 2) {
-    // hide origin header
+    // hide `origin` header
     var iframe = document.createElement('iframe')
 
     if (typeof RELEASE !== 'undefined') {
-      iframe.src = 'data:text/html,<script>onmessage=' + loadImg + '</script>'
+      iframe.src = 'data:text/html,<script>onmessage=' + loadImg + '<\/script>'
     } else {
-      iframe.src = 'data:text/html;base64,' + btoa('<script>onmessage=' + loadImg + '</script>')
+      iframe.src = 'data:text/html;base64,' + btoa('<script>onmessage=' + loadImg + '<\/script>')
     }
     iframe.style.display = 'none'
     iframe.onload = loadNextUrl
@@ -145,60 +157,74 @@ function pageEnv() {
     return out
   }
 
-  function unpack(bytes, cache) {
+  function unpack(bytes) {
     var confEnd = bytes.indexOf(13)   // '\r'
     var confBin = bytes.subarray(0, confEnd)
     var confStr = new TextDecoder().decode(confBin)
     var confObj = JSON.parse(confStr)
 
     var offset = confEnd + 1
-    var pendings = []
 
-    for (var file in confObj) {
-      var headers = confObj[file]
-      headers['cache-control'] = 'max-age=60'
+    for (var path in confObj) {
+      var headers = confObj[path]
+      var expires = /\.html$/.test(path) ? 5 : UPDATE_TIMER
+      headers['cache-control'] = 'max-age=' + expires
 
       var len = headers['content-length']
       var bin = bytes.subarray(offset, offset + len)
-      var req = new Request(rootPath + file)
-      var res = new Response(bin, {
+
+      confObj[path] = new Response(bin, {
         headers: headers
       })
-      pendings.push(
-        cache.put(req, res)
-      )
       offset += len
     }
-    return Promise.all(pendings)
+    return confObj
   }
 }
 
 function swEnv() {
   var jsUrl = location.href
   var rootPath = getRootPath(jsUrl)
-  var hasUpdate
-  var currJs
+  var isFirst = 1
+  var newJs
 
-  // check update
-  setInterval(function() {
-    var p = 'cache' in Request.prototype
-      ? fetch(jsUrl, {cache: 'no-cache'})
-      : fetch(jsUrl + '?t=' + Date.now())
+  function openFile(path) {
+    return caches.open('.web2img').then(function(cache) {
+      return cache.match(path)
+    })
+  }
 
-    p.then(function(res) {
-      res.text().then(function(js) {
-        if (currJs !== js) {
-          if (currJs) {
-            hasUpdate = 1
-            console.log('update')
-          }
-          currJs = js
+  function checkUpdate() {
+    openFile(rootPath + '.cache-info').then(function(res) {
+      if (!res) {
+        return
+      }
+      res.json().then(function(info) {
+        if (Date.now() - info.time < 1000 * UPDATE_TIMER) {
+          return
         }
+        var p = 'cache' in Request.prototype
+          ? fetch(jsUrl, {cache: 'no-cache'})
+          : fetch(jsUrl + '?t=' + Date.now())
+
+        p.then(function(res) {
+          res.text().then(function(js) {
+            if (js.indexOf(info.hash) === -1) {
+              newJs = js
+              console.log('[web2img] new version found')
+            }
+          })
+        })
       })
     })
-  }, 1000 * 120)
+  }
+  setInterval(checkUpdate, 1000 * UPDATE_TIMER)
 
   onfetch = function(e) {
+    if (isFirst) {
+      isFirst = 0
+      checkUpdate()
+    }
     var req = e.request
     if (req.url.indexOf(rootPath)) {
       // url not starts with rootPath
@@ -206,30 +232,33 @@ function swEnv() {
     }
     var res
 
-    if (hasUpdate && req.mode === 'navigate') {
-      var html = '<script data-root="' + rootPath + '">' + currJs + '</script>'
+    if (newJs && req.mode === 'navigate') {
+      var html = '<script data-root="' + rootPath + '">' + newJs + '<\/script>'
       res = new Response(html, {
         headers: {
           'content-type': 'text/html'
         }
       })
-      hasUpdate = 0
+      newJs = ''
+      console.log('[web2img] updating')
     } else {
       var path = new URL(req.url).pathname
         .replace(/\/{2,}/g, '/')
         .replace(/\/$/, '/index.html')
 
-      res = caches.open('.web2img').then(function(cache) {
-        return cache.match(path).then(function(res) {
-          return res || cache.match(rootPath + '404.html').then(function(res) {
-            return res || new Response('file not found: ' + path, {
-              status: 404
-            })
+      res = openFile(path).then(function(r1) {
+        return r1 || openFile(rootPath + '404.html').then(function(r2) {
+          return r2 || new Response('file not found: ' + path, {
+            status: 404
           })
         })
       })
     }
     e.respondWith(res)
+  }
+
+  oninstall = function() {
+    skipWaiting()
   }
 }
 

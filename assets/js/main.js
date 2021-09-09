@@ -305,6 +305,7 @@ async function genCode() {
 var HASH = '${hashStr}'
 var URLS = ['${urlsStr}']
 var PRIVACY = ${privacy}
+var UPDATE_TIMER = 120
 
 ${tmplCode}
 `
