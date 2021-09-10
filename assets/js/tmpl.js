@@ -58,7 +58,8 @@ function pageEnv() {
     crypto.subtle.digest('SHA-256', buf).then(function(digest) {
       var hashBin = new Uint8Array(digest)
       var hashB64 = btoa(String.fromCharCode.apply(null, hashBin))
-      if (typeof HASH !== 'undefined' && HASH !== hashB64) {
+      if (HASH && HASH !== hashB64) {
+        console.warn('[web2img] bad hash. exp:', HASH, 'but got:', hashB64)
         loadNextUrl()
         return
       }
@@ -73,9 +74,12 @@ function pageEnv() {
 
   // run in iframe
   var loadImg = function(e) {
+    var opt = e.data
     var img = new Image()
 
     img.onload = function() {
+      clearInterval(tid)
+
       var canvas = document.createElement('canvas')
       canvas.width = img.width
       canvas.height = img.height
@@ -86,8 +90,7 @@ function pageEnv() {
       var imgData = ctx.getImageData(0, 0, img.width, img.height)
       var buf = imgData.data.buffer
 
-      // inline
-      if (typeof PRIVACY === 'undefined' || PRIVACY === 2) {
+      if (opt.privacy === 2) {
         parent.postMessage(buf, '*', [buf])
       } else {
         parseImgBuf(buf)
@@ -95,17 +98,26 @@ function pageEnv() {
     }
 
     img.onerror = function() {
-      if (typeof PRIVACY === 'undefined' || PRIVACY === 2) {
+      clearInterval(tid)
+
+      if (opt.privacy === 2) {
         parent.postMessage('', '*')
       } else {
         parseImgBuf()
       }
     }
-    if (typeof PRIVACY !== 'undefined' && PRIVACY === 1) {
+    if (opt.privacy === 1) {
       img.referrerPolicy = 'no-referrer'
     }
     img.crossOrigin = 1
-    img.src = e.data
+    img.src = opt.url
+
+    var tid = setTimeout(function() {
+      console.log('[web2img] timeout:', opt.url)
+      img.onerror()
+      img.onerror = img.onload = null
+      img.src = ''
+    }, opt.timeout)
   }
 
   if (PRIVACY === 2) {
@@ -138,10 +150,15 @@ function pageEnv() {
       fallback('failed to load resources')
       return
     }
+    var opt = {
+      url: url,
+      privacy: PRIVACY,
+      timeout: IMG_TIMEOUT * 1000
+    }
     if (PRIVACY === 2) {
-      iframeWin.postMessage(url, '*')
+      iframeWin.postMessage(opt, '*')
     } else {
-      loadImg({data: url})
+      loadImg({data: opt})
     }
   }
 
@@ -167,7 +184,7 @@ function pageEnv() {
 
     for (var path in confObj) {
       var headers = confObj[path]
-      var expires = /\.html$/.test(path) ? 5 : UPDATE_TIMER
+      var expires = /\.html$/.test(path) ? 5 : UPDATE_INTERVAL
       headers['cache-control'] = 'max-age=' + expires
 
       var len = headers['content-length']
@@ -200,7 +217,7 @@ function swEnv() {
         return
       }
       res.json().then(function(info) {
-        if (Date.now() - info.time < 1000 * UPDATE_TIMER) {
+        if (Date.now() - info.time < 1000 * UPDATE_INTERVAL) {
           return
         }
         var p = 'cache' in Request.prototype
@@ -218,7 +235,7 @@ function swEnv() {
       })
     })
   }
-  setInterval(checkUpdate, 1000 * UPDATE_TIMER)
+  setInterval(checkUpdate, 1000 * UPDATE_INTERVAL)
 
   onfetch = function(e) {
     if (isFirst) {

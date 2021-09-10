@@ -305,7 +305,8 @@ async function genCode() {
 var HASH = '${hashStr}'
 var URLS = ['${urlsStr}']
 var PRIVACY = ${privacy}
-var UPDATE_TIMER = 120
+var UPDATE_INTERVAL = 120
+var IMG_TIMEOUT = 10
 
 ${tmplCode}
 `
@@ -317,7 +318,8 @@ ${tmplCode}
           global_defs: {
             RELEASE: 1,
           },
-        }
+        },
+        ie8: true,
       })
       js = ret.code
     } catch (err) {
