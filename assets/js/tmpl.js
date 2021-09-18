@@ -9,34 +9,34 @@ function pageEnv() {
     container.innerHTML = html
   }
 
-  var currentScript = document.currentScript
-  var jsUrl = currentScript.src
-  var rootPath
-
-  if (jsUrl) {
-    var sw = navigator.serviceWorker
-    if (!sw) {
-      fallback('Service Worker is not supported')
-      return
-    }
-    var swPending = sw.register(jsUrl).catch(function(err) {
-      fallback(err.message)
-    })
-    rootPath = getRootPath(jsUrl)
-  } else {
-    rootPath = currentScript.dataset.root
+  var jsUrl = document.currentScript.src
+  var sw = navigator.serviceWorker
+  if (!sw) {
+    fallback('Service Worker is not supported')
+    return
   }
+  var rootPath = getRootPath(jsUrl)
+
 
   function unpackToCache(bytes, cache) {
+    var pendings = []
+
+    if (!sw.controller) {
+      var swPending = sw.register(jsUrl).catch(function(err) {
+        fallback(err.message)
+      })
+      pendings.push(swPending)
+    }
+
     var info = JSON.stringify({
       hash: HASH,
       time: Date.now()
     })
     var res = new Response(info)
-    var pendings = [
+    pendings.push([
       cache.put(rootPath + '.cache-info', res),
-      swPending,
-    ]
+    ])
+
     var pathResMap = unpack(bytes)
 
     for (var path in pathResMap) {
@@ -125,9 +125,9 @@ function pageEnv() {
     var iframe = document.createElement('iframe')
 
     if (typeof RELEASE !== 'undefined') {
-      iframe.src = 'data:text/html,<script>onmessage=' + loadImg + '<\/script>'
+      iframe.src = 'data:text/html,<script>onmessage=' + loadImg + '</script>'
     } else {
-      iframe.src = 'data:text/html;base64,' + btoa('<script>onmessage=' + loadImg + '<\/script>')
+      iframe.src = 'data:text/html;base64,' + btoa('<script>onmessage=' + loadImg + '</script>')
     }
     iframe.style.display = 'none'
     iframe.onload = loadNextUrl
@@ -187,7 +187,7 @@ function pageEnv() {
       var expires = /\.html$/.test(path) ? 5 : UPDATE_INTERVAL
       headers['cache-control'] = 'max-age=' + expires
 
-      var len = headers['content-length']
+      var len = +headers['content-length']
       var bin = bytes.subarray(offset, offset + len)
 
       confObj[path] = new Response(bin, {
@@ -200,7 +200,7 @@ function pageEnv() {
 }
 
 function swEnv() {
-  var jsUrl = location.href
+  var jsUrl = location.href.split('?')[0]
   var rootPath = getRootPath(jsUrl)
   var isFirst = 1
   var newJs
@@ -220,14 +220,17 @@ function swEnv() {
         if (Date.now() - info.time < 1000 * UPDATE_INTERVAL) {
           return
         }
-        var p = 'cache' in Request.prototype
-          ? fetch(jsUrl, {cache: 'no-cache'})
-          : fetch(jsUrl + '?t=' + Date.now())
-
-        p.then(function(res) {
+        var url, opt
+        if ('cache' in Request.prototype) {
+          url = jsUrl
+          opt = {cache: 'no-cache'}
+        } else {
+          url = jsUrl + '?t=' + Date.now()
+        }
+        fetch(url, opt).then(function(res) {
           res.text().then(function(js) {
             if (js.indexOf(info.hash) === -1) {
-              newJs = js
+              newJs = url
               console.log('[web2img] new version found')
             }
           })
@@ -237,41 +240,50 @@ function swEnv() {
   }
   setInterval(checkUpdate, 1000 * UPDATE_INTERVAL)
 
+  function respondFile(url) {
+    var path = new URL(url).pathname
+      .replace(/\/{2,}/g, '/')
+      .replace(/\/$/, '/index.html')
+
+    return openFile(path).then(function(r1) {
+      return r1 || openFile(rootPath + '404.html').then(function(r2) {
+        return r2 || new Response('file not found: ' + path, {
+          status: 404
+        })
+      })
+    })
+  }
+
+  function respond(req) {
+    return caches.has('.web2img').then(function(existed) {
+      if (!existed) {
+        // fix cache
+        newJs = jsUrl
+      }
+      if (newJs && req.mode === 'navigate') {
+        var res = new Response('<script src=' + newJs + '></script>', {
+          headers: {
+            'content-type': 'text/html'
+          }
+        })
+        newJs = ''
+        console.log('[web2img] updating')
+        return res
+      }
+      return respondFile(req.url)
+    })
+  }
+
   onfetch = function(e) {
     if (isFirst) {
       isFirst = 0
       checkUpdate()
     }
     var req = e.request
-    if (req.url.indexOf(rootPath)) {
-      // url not starts with rootPath
-      return
+    if (req.url.indexOf(rootPath) === 0 && req.url.indexOf(jsUrl) !== 0) {
+      // url starts with rootPath (exclude x.js)
+      e.respondWith(respond(req))
     }
-    var res
-
-    if (newJs && req.mode === 'navigate') {
-      var html = '<script data-root="' + rootPath + '">' + newJs + '<\/script>'
-      res = new Response(html, {
-        headers: {
-          'content-type': 'text/html'
-        }
-      })
-      newJs = ''
-      console.log('[web2img] updating')
-    } else {
-      var path = new URL(req.url).pathname
-        .replace(/\/{2,}/g, '/')
-        .replace(/\/$/, '/index.html')
-
-      res = openFile(path).then(function(r1) {
-        return r1 || openFile(rootPath + '404.html').then(function(r2) {
-          return r2 || new Response('file not found: ' + path, {
-            status: 404
-          })
-        })
-      })
-    }
-    e.respondWith(res)
   }
 
   oninstall = function() {
