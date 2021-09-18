@@ -332,13 +332,16 @@ ${tmplCode}
 
 txtUrls.onchange = async function() {
   const urls = this.value.split(/\s+/).filter(Boolean)
+  if (urls.length === 0) {
+    txtJs.value = ''
+    return
+  }
+  txtJs.value = 'generating...'
+
   const err = await verifyUrls(urls)
 
   showUrlsWarn(err)
   if (err) {
-    return
-  }
-  if (urls.length === 0) {
     txtJs.value = ''
     return
   }
