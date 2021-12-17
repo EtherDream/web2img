@@ -33,9 +33,9 @@ function pageEnv() {
       time: Date.now()
     })
     var res = new Response(info)
-    pendings.push([
+    pendings.push(
       cache.put(rootPath + '.cache-info', res),
-    ])
+    )
 
     var pathResMap = unpack(bytes)
 
