@@ -301,12 +301,14 @@ async function genCode() {
   const privacy = optPrivacy.options[optPrivacy.selectedIndex].value
   const hashStr = hashExp ? bytesToB64(hashExp) : ''
   const urlsStr = imgUrls.join("', '")
+  let pathPrefix = document.getElementById('pathPrefix').value.replaceAll('/', '').replaceAll('\\', '')
   let js = `\
 var HASH = '${hashStr}'
 var URLS = ['${urlsStr}']
 var PRIVACY = ${privacy}
 var UPDATE_INTERVAL = 120
 var IMG_TIMEOUT = 10
+var PATH_PREFIX = '${pathPrefix}'
 
 ${tmplCode}
 `

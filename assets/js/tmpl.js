@@ -22,7 +22,7 @@ function pageEnv() {
     var pendings = []
 
     if (!sw.controller) {
-      var swPending = sw.register(jsUrl).catch(function(err) {
+      var swPending = sw.register(jsUrl, {scope: getRootPath(jsUrl)}).catch(function(err) {
         fallback(err.message)
       })
       pendings.push(swPending)
@@ -46,7 +46,8 @@ function pageEnv() {
       )
     }
     Promise.all(pendings).then(function() {
-      location.reload()
+      // location.reload()
+      location.replace(getRootPath(jsUrl))
     })
   }
 
@@ -295,7 +296,8 @@ function getRootPath(url) {
   // e.g.
   // 'https://mysite.com/'
   // 'https://xx.github.io/path/to/'
-  return url.split('?')[0].replace(/[^/]+$/, '')
+  return url.split('?')[0].replace(/[^/]+$/, '') + (PATH_PREFIX ? PATH_PREFIX + '/' : '')
+
 }
 
 if (self.document) {
